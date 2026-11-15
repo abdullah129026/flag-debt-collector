@@ -317,7 +317,7 @@ For developers whose repos carry flags nobody dares delete. The platforms tell y
 
 ### Analytics events plan (instrumented as built, never retrofitted)
 
-Tool: Plausible (cookieless, no consent banner), wired in phase-4. If Abdullah prefers PostHog, the event names stay the same. Events: `scan_started`, `scan_completed` (flag count, stale count, deletable LOC as aggregates, never repo names or code), `report_viewed`, `export_clicked`, `signup_completed`, plus landing pageviews and referrers. No keystrokes, no file contents, no repo URLs, no per-user paths.
+Tool: PostHog free tier (cookieless config, session replay off), wired in phase-4. Approved at the phase-0 gate 2026-11-15: Plausible was the plan's first pick, but Plausible Cloud has no free tier ($9/mo after the 30-day trial), which breaks the zero-budget rule. The event names stay the same either way. Events: `scan_started`, `scan_completed` (flag count, stale count, deletable LOC as aggregates, never repo names or code), `report_viewed`, `export_clicked`, `signup_completed`, plus landing pageviews and referrers. No keystrokes, no file contents, no repo URLs, no per-user paths.
 
 ### Launch checklist (in order)
 
@@ -354,12 +354,12 @@ Flex order if time slips: CSV export first, then provider rollout (LaunchDarkly)
 - Abdullah can provide a LaunchDarkly token for the rollout demo, or the demo leans on ConfigCat's public config. See Decisions needed.
 - Astryx versions in the brief (core 0.7.15, theme-neutral 0.7.14) are still the latest verified at phase-1; if a newer minor is out, phase-1 re-verifies before pinning.
 
-## Decisions needed (Abdullah answers before approval)
+## Decisions — APPROVED 2026-11-15 (Abdullah in chat, as recommended)
 
-1. Demo repo for the launch scan: which real repo should the public sample report scan? His own flag-debt-collector repo has few flags; a bigger public JS/TS repo with known flags would show a better number. His pick, or a suggestion is welcome.
-2. LaunchDarkly demo: does he have a LaunchDarkly account and a token to demo rollout %, or should the demo lean on ConfigCat's public config only? Without a token, rollout % shows "unknown" on the demo.
-3. Private repos: is the GitHub App (Contents Read, Metadata Read, selected repos) a v1 must-have, or is public-URL-only acceptable for launch with private repos as the first post-launch item?
-4. Scan caps: 100 MB clone and 10,000 files. Too generous for the free tier, or fine? Lower caps mean fewer repos scan at all.
-5. Staleness thresholds: 90 days for "old and untouched" and for the rollout-settled window. Shorter (60 days) would surface more candidates; longer (180) fewer, safer ones. Keep 90?
-6. Analytics: Plausible (needs an account, cookieless, no banner) or PostHog free tier (funnels, needs cookieless config) or no analytics in v1? The event names are fixed either way.
-7. CSV export in v1: keep it, or cut it to protect the Nov 21 deadline? It is the first flex item if time slips.
+1. Demo repo for the launch scan: APPROVED to defer the pick to the phase-3 slice 1 sizing spike (probe candidates, keep the highest flag count under the caps); fallback is his own link-rot-killer repo.
+2. LaunchDarkly demo: APPROVED ConfigCat public config only, no token in v1. Rollout % shows "unknown" on the demo.
+3. Private repos: APPROVED public-URL-only for launch; the GitHub App (Contents Read, Metadata Read, selected repos) is the first post-launch item.
+4. Scan caps: APPROVED to keep 100 MB clone and 10,000 files.
+5. Staleness thresholds: APPROVED to keep 90 days for "old and untouched" and for the rollout-settled window.
+6. Analytics: APPROVED PostHog free tier, not Plausible (see 0.5: Plausible Cloud has no free tier, $9/mo after the trial, breaks zero-budget). Fallback if no account: none in v1.
+7. CSV export in v1: APPROVED to keep it; it stays the first flex item to cut if time slips.
