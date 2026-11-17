@@ -411,9 +411,7 @@ Touch targets are at least 44px. The coarse-pointer adaptation in
 the theme already scales type up on touch screens; app layouts must
 not fight it.
 
-## 9. Decisions for the gate
-
-Abdullah approves these as a block, or vetoes individual items:
+## 9. Decisions — APPROVED 2026-11-17 (Abdullah in chat, as a block, no vetoes)
 
 1. Astryx neutral, dark-only in v1, no light toggle. Light mode is a
    hook.
