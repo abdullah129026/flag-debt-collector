@@ -1,0 +1,5 @@
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+
+/* Theme CSS comes in through the generated module (src/astryx-themes.js),
+   imported by providers.js, so the layer order stays reset, base, theme. */
