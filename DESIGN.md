@@ -447,6 +447,8 @@ direction; phase-2 proves the components carry it.
 
 ### Phase-2 findings (2026-11-18, recorded at the gate)
 
+Approved by Abdullah 2026-11-18 10:30 PKT ("Approved — keep the defaults"): all 4 findings accepted as-is, no vetoes.
+
 - Watch and Ignored Badges render text-only. The neutral icon
   registry in 0.7.16 holds 29 glyphs and has no eye and no pause
   (closest are eyeSlash, which means the opposite of Watch, and
