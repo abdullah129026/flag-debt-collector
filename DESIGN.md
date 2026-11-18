@@ -102,7 +102,14 @@ against the pinned 0.7.16 packages:
    rendered font in the real app.
 
 Theme source (phase-2 writes this into the repo as
-`src/themes/flag-debt.mjs`):
+`src/themes/flag-debt/flagDebtTheme.mjs`, with a `flagDebtTheme.doc.mjs`
+descriptor beside it). The flat `src/themes/flag-debt.mjs` path in the
+phase-1 draft did not survive contact with the CLI: `theme list` and
+`theme add` only discover a theme in the folder layout (a descriptor
+whose `name` matches the parent directory, a source module with the
+same stem). The source content is unchanged; only the path moved, so
+the theme is discoverable and `theme add` generates the
+`astryx-themes` module.
 
 ```js
 import {defineTheme} from '@astryxdesign/core/theme';
@@ -432,8 +439,29 @@ not fight it.
 
 ## 10. What phase-2 owns
 
-The theme file (`src/themes/flag-debt.mjs` plus its built artifacts
+The theme file (`src/themes/flag-debt/flagDebtTheme.mjs` plus its built artifacts
 and the generated `astryx-themes` module), every core component in
 all states against the theme, the three primitive-built pieces from
 section 5, and a gallery page demoing the set. This file sets the
 direction; phase-2 proves the components carry it.
+
+### Phase-2 findings (2026-11-18, recorded at the gate)
+
+- Watch and Ignored Badges render text-only. The neutral icon
+  registry in 0.7.16 holds 29 glyphs and has no eye and no pause
+  (closest are eyeSlash, which means the opposite of Watch, and
+  stop, which would misread as a pause). Status still reads from
+  text alone, per the rule in section 1, so text-only is accepted
+  for these two rather than inventing a custom glyph.
+- CodeBlock diff mode is `isDiff`, not `highlightLines`:
+  `highlightLines` takes one highlight color only and cannot paint
+  added green and removed red. `isDiff` over `language="plaintext"`
+  does exactly that, with no syntax highlighting of the diff.
+- AlertDialog has no text-input slot, so the typed-DELETE
+  confirmation cannot live inside it. Delete-scan confirms with one
+  click in the gallery; account deletion (phase-4) keeps the
+  two-step typed-DELETE pattern and builds the input from
+  primitives if the component still lacks the slot.
+- Pagination only renders past one page. The gallery pages the flag
+  table at 3 per page so the control shows; the "Showing N of M"
+  text stays dynamic.
