@@ -1,6 +1,6 @@
 # DESIGN-COPY.md: Feature Flag Debt Collector (project 5)
 
-Design blueprint. Status: awaiting Abdullah's approval (gate).
+Design blueprint. Status: approved by Abdullah 2026-11-19 19:17 PKT ("Approved — keep the defaults"). All 10 gate notes in section 18 accepted as-is.
 Every screen is specced against the approved phase-2 system (DESIGN.md,
 Astryx neutral 0.7.16, dark-only, Inter via the variant B typography
 config). No product screen gets built before its blueprint entry exists.
