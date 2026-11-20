@@ -1,0 +1,3 @@
+# Ignore one flag key and one path.
+flag: ignored_flag
+src/ignored/**
