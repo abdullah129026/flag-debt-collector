@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test test/"
+    "test": "node --test \"test/*.test.js\""
   },
   "dependencies": {
     "@astryxdesign/core": "0.7.16",
     "@astryxdesign/theme-neutral": "0.7.16",
+    "@babel/parser": "8.1.2",
     "@stylexjs/stylex": "0.19.2",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.119.2",
     "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1"
