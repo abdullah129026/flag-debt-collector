@@ -73,3 +73,40 @@ export async function GET(request, { params }) {
     is_owner: Boolean(isOwner),
   });
 }
+
+// DELETE /api/scans/[id] — owner only (session or claim cookie). A running
+// scan is cancelled first. The row and its flags follow by cascade.
+export async function DELETE(request, { params }) {
+  const sb = service();
+  if (!sb) return unconfigured();
+  const { id } = await params;
+  if (!isUuid(id)) return notFound('No scan at this link. Check the URL.');
+
+  const { data: scan, error } = await sb
+    .from('scans')
+    .select('id, repo_id, owner_id, status, claim_hash')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    logError('scans.delete_failed', error, { scan_id: id });
+    return internal();
+  }
+  if (!scan) return notFound('No scan at this link. Check the URL.');
+
+  const ownerId = await sessionUserId(request);
+  const claims = readClaims(request);
+  const isOwner =
+    (ownerId && scan.owner_id === ownerId) ||
+    (claims[id] && scan.claim_hash === sha256(claims[id]));
+  if (!isOwner) return notFound('No scan at this link. Check the URL.');
+
+  if (['queued', 'cloning', 'parsing', 'age', 'provider'].includes(scan.status)) {
+    await sb.from('scans').update({ status: 'failed', error: 'Scan cancelled.', finished_at: new Date().toISOString() }).eq('id', id);
+  }
+  const { error: deleteError } = await sb.from('scans').delete().eq('id', id);
+  if (deleteError) {
+    logError('scans.delete_failed', deleteError, { scan_id: id });
+    return internal();
+  }
+  return json({ deleted: true, scan_id: id });
+}
