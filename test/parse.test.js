@@ -93,3 +93,20 @@ test('name-only calls without an SDK import are not flags', () => {
   assert.deepEqual(out.references, []);
   assert.deepEqual(out.unresolved, []);
 });
+
+test('a flags.json holding an OpenAPI doc yields no config flags', () => {
+  const openapi = JSON.stringify({
+    openapi: '3.0.0',
+    info: { title: 'API', version: '1.0.0' },
+    servers: [{ url: 'https://example.com' }],
+    paths: { '/x': { get: { responses: {} } } },
+    tags: [],
+  });
+  assert.deepEqual(parseFileContent(openapi, 'Specs/flags.json', null).references, []);
+  // A bare boolean map in the same filename still counts.
+  const bare = JSON.stringify({ dark_mode: true, new_ui: { enabled: true, percentage: 50 } });
+  assert.deepEqual(
+    parseFileContent(bare, 'flags.json', null).references.map((r) => r.key).sort(),
+    ['dark_mode', 'new_ui'],
+  );
+});
