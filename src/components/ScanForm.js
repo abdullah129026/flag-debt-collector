@@ -8,7 +8,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
 import { VStack } from '@astryxdesign/core/VStack';
 import { parseRepoUrl } from '@/lib/scan/url';
-import { capture } from '@/lib/analytics';
+import { capture } from '@/src/lib/analytics';
 
 // The paste box from the landing page, reused on the scan page for retries.
 // Validation runs on submit, so no error shows before the visitor acts.

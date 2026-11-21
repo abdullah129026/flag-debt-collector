@@ -32,7 +32,7 @@ import {
   locText,
   sortFlags,
   defaultSortFlags,
-} from '@/lib/flags-ui';
+} from '@/src/lib/flags-ui';
 import { StatusBadge, ConfidenceBadge } from './FlagBadges';
 
 const PAGE_SIZE = 25;
