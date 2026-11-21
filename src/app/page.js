@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
@@ -8,13 +8,22 @@ import { Card } from '@astryxdesign/core/Card';
 import { Layout } from '@astryxdesign/core/Layout';
 import { VStack } from '@astryxdesign/core/VStack';
 import { Button } from '@astryxdesign/core/Button';
-import { MinimalTop, SiteFooter } from '@/src/components/Chrome';
+import { MinimalTop, SiteFooter, ToastHost } from '@/src/components/Chrome';
 import { ScanForm } from '@/src/components/ScanForm';
 import { capture } from '@/src/lib/analytics';
 
 export default function Home() {
+  const [toast, setToast] = useState(null);
   useEffect(() => {
     capture('landing_pageview', { referrer: document.referrer || 'direct' });
+    // A toast left by a page that navigated here (account deletion).
+    try {
+      const saved = sessionStorage.getItem('fdc_toast');
+      if (saved) {
+        sessionStorage.removeItem('fdc_toast');
+        setToast(saved);
+      }
+    } catch { /* no toast without storage */ }
   }, []);
 
   return (
@@ -82,6 +91,7 @@ export default function Home() {
         </VStack>
       </Layout>
       <SiteFooter />
+      <ToastHost toast={toast} onDismiss={() => setToast(null)} />
     </VStack>
   );
 }

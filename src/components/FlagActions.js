@@ -58,7 +58,7 @@ export function IgnoreDialog({ flag, open, onOpenChange, onDone, mode }) {
   }
 
   return (
-    <Dialog isOpen={open} onOpenChange={onOpenChange} purpose="form">
+    <Dialog isOpen={open} onOpenChange={onOpenChange} purpose="info">
       <DialogHeader
         title={`${unignoring ? 'Un-ignore' : 'Ignore'} ${flag.key}`}
         subtitle={
