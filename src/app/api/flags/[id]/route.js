@@ -48,7 +48,7 @@ export async function GET(request, { params }) {
 
   return json({
     flag,
-    repo: { host: repo.host, full_name: repo.full_name },
+    repo: { id: repo.id, host: repo.host, full_name: repo.full_name },
     scan: scan ? { id: scan.id, created_at: scan.created_at, finished_at: scan.finished_at } : null,
     user_state: userState ? { user_status: userState.user_status, reason: userState.reason, cap_override: userState.cap_override } : null,
     call_sites: [...byFile.values()],

@@ -17,32 +17,13 @@ import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Icon } from '@astryxdesign/core/Icon';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
-import { MinimalTop, SiteFooter, ToastHost } from '@/src/components/Chrome';
+import { MinimalTop, SiteFooter, ToastHost, PageError } from '@/src/components/Chrome';
 import { ScanForm } from '@/src/components/ScanForm';
 import { FlagTable } from '@/src/components/FlagTable';
 import { headlineTotals, formatDateTime, elapsedText, progressPercent, STEP_LABELS } from '@/src/lib/flags-ui';
 import { capture } from '@/src/lib/analytics';
 
 const RUNNING = ['queued', 'cloning', 'parsing', 'age', 'provider'];
-
-function ErrorScreen({ message, onRetry }) {
-  return (
-    <VStack gap={6}>
-      <MinimalTop rightLabel="Sign in" rightHref="/login" />
-      <Layout height="auto" contentWidth={960} padding={4}>
-        <VStack gap={3}>
-          <Heading level={1}>Something went wrong.</Heading>
-          <Text>{message}</Text>
-          <HStack gap={2} wrap="wrap">
-            <Button label="Try again" variant="primary" onClick={onRetry} />
-            <Button label="Go to the scan tool" variant="secondary" onClick={() => { window.location.href = '/'; }} />
-          </HStack>
-        </VStack>
-      </Layout>
-      <SiteFooter />
-    </VStack>
-  );
-}
 
 export default function ScanPage() {
   const { id } = useParams();
@@ -152,13 +133,19 @@ export default function ScanPage() {
 
   if (fatal) {
     return (
-      <ErrorScreen
-        message={fatal}
-        onRetry={() => {
-          setFatal(null);
-          loadScan();
-        }}
-      />
+      <VStack gap={6}>
+        <MinimalTop rightLabel="Sign in" rightHref="/login" />
+        <Layout height="auto" contentWidth={960} padding={4}>
+          <PageError
+            message={fatal}
+            onRetry={() => {
+              setFatal(null);
+              loadScan();
+            }}
+          />
+        </Layout>
+        <SiteFooter />
+      </VStack>
     );
   }
   if (!scan) {

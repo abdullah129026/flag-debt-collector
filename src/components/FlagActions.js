@@ -11,8 +11,10 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { IGNORE_REASONS } from '@/lib/flag-actions';
 
 // Ignore dialog (DESIGN-COPY 14.2). The reason is required; "other" also
-// needs a note. The reason is stored with the flag.
-export function IgnoreDialog({ flag, open, onOpenChange, onDone }) {
+// needs a note. The reason is stored with the flag. mode 'unignore' reuses
+// the same dialog for lifting an ignore, with the reason stored the same way.
+export function IgnoreDialog({ flag, open, onOpenChange, onDone, mode }) {
+  const unignoring = mode === 'unignore';
   const [reason, setReason] = useState('kill switch');
   const [note, setNote] = useState('');
   const [error, setError] = useState(null);
@@ -31,7 +33,7 @@ export function IgnoreDialog({ flag, open, onOpenChange, onDone }) {
     setBusy(true);
     let res;
     try {
-      res = await fetch(`/api/flags/${flag.id}/ignore`, {
+      res = await fetch(`/api/flags/${flag.id}/${unignoring ? 'unignore' : 'ignore'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason, note }),
@@ -44,18 +46,26 @@ export function IgnoreDialog({ flag, open, onOpenChange, onDone }) {
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
-      setError((data.error && data.error.message) || 'Could not ignore the flag. Try again.');
+      setError((data.error && data.error.message) || 'Could not save. Try again.');
       return;
     }
     onOpenChange(false);
-    onDone(`Flag ignored. ${flag.key} left the deletable total.`);
+    onDone(
+      unignoring
+        ? `Flag un-ignored. ${flag.key} is visible again.`
+        : `Flag ignored. ${flag.key} left the deletable total.`,
+    );
   }
 
   return (
     <Dialog isOpen={open} onOpenChange={onOpenChange} purpose="form">
       <DialogHeader
-        title={`Ignore ${flag.key}`}
-        subtitle="The flag leaves the deletable total. The reason is stored with the flag."
+        title={`${unignoring ? 'Un-ignore' : 'Ignore'} ${flag.key}`}
+        subtitle={
+          unignoring
+            ? 'The flag returns to the deletable total. The reason is stored with the flag.'
+            : 'The flag leaves the deletable total. The reason is stored with the flag.'
+        }
         onOpenChange={onOpenChange}
       />
       <VStack gap={3} padding={4}>
@@ -64,7 +74,7 @@ export function IgnoreDialog({ flag, open, onOpenChange, onDone }) {
         {error && <Text>{error}</Text>}
         <HStack gap={2} hAlign="end">
           <Button label="Cancel" variant="ghost" onClick={() => onOpenChange(false)} />
-          <Button label="Ignore flag" variant="primary" onClick={confirm} isLoading={busy} isDisabled={busy} />
+          <Button label={unignoring ? 'Un-ignore flag' : 'Ignore flag'} variant="primary" onClick={confirm} isLoading={busy} isDisabled={busy} />
         </HStack>
       </VStack>
     </Dialog>

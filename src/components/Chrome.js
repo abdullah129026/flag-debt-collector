@@ -8,6 +8,8 @@ import { Breadcrumbs, BreadcrumbItem } from '@astryxdesign/core/Breadcrumbs';
 import { Layout } from '@astryxdesign/core/Layout';
 import { VStack } from '@astryxdesign/core/VStack';
 import { HStack } from '@astryxdesign/core/HStack';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Link as AstryxLink } from '@astryxdesign/core/Link';
 import { Toast } from '@astryxdesign/core/Toast';
@@ -86,6 +88,21 @@ export function SiteFooter() {
         <AstryxLink href={REPO_URL} isExternalLink isStandalone>GitHub</AstryxLink>
       </HStack>
     </Layout>
+  );
+}
+
+// Page-level error screen (DESIGN-COPY 15.2). Used by any page that cannot
+// load its data. The button reloads the page; no stack trace is shown.
+export function PageError({ message, onRetry }) {
+  return (
+    <VStack gap={3}>
+      <Heading level={1}>Something went wrong.</Heading>
+      <Text>{message}</Text>
+      <HStack gap={2} wrap="wrap">
+        <Button label="Try again" variant="primary" onClick={onRetry} />
+        <Button label="Go to the scan tool" variant="secondary" onClick={() => { window.location.href = '/'; }} />
+      </HStack>
+    </VStack>
   );
 }
 
