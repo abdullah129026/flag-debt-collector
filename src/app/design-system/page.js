@@ -16,6 +16,7 @@ import {
   useTableSortable,
   useTableSelection,
   useTablePagination,
+  useTableStickyColumns,
   proportional,
 } from '@astryxdesign/core/Table';
 import {SegmentedControl, SegmentedControlItem} from '@astryxdesign/core/SegmentedControl';
@@ -160,13 +161,16 @@ export default function DesignSystemPage() {
     totalItems: FLAGS.length,
     pageSize,
   });
+  // Same floors as the shared FlagTable: the 60px omitted-width floor cut
+  // status badges to an icon at 375px, and the flag key broke mid-word.
+  const stickyPlugin = useTableStickyColumns({startKeys: ['flag']});
 
   const columns = [
-    {key: 'flag', header: 'Flag', width: proportional(2), sortable: true, renderCell: (item) => <Code>{item.key}</Code>},
-    {key: 'status', header: 'Status', sortable: true, renderCell: (item) => <StatusBadge status={item.status} />},
+    {key: 'flag', header: 'Flag', width: proportional(2, {minWidth: 200}), sortable: true, renderCell: (item) => <span style={{whiteSpace: 'nowrap'}}><Code>{item.key}</Code></span>},
+    {key: 'status', header: 'Status', width: proportional(1, {minWidth: 132}), sortable: true, renderCell: (item) => <StatusBadge status={item.status} />},
     {key: 'age', header: 'Age', sortable: true, align: 'end', renderCell: (item) => <Text hasTabularNumbers>{item.age}d</Text>},
     {key: 'rollout', header: 'Rollout', sortable: {sortKey: 'rolloutValue'}, align: 'end', renderCell: (item) => <Text hasTabularNumbers>{item.rollout}</Text>},
-    {key: 'reachable', header: 'Reachable', sortable: true, renderCell: (item) => <Text>{item.reachable}</Text>},
+    {key: 'reachable', header: 'Reachable', width: proportional(1, {minWidth: 120}), sortable: true, renderCell: (item) => <Text>{item.reachable}</Text>},
     {key: 'loc', header: 'Deletable LOC', sortable: true, align: 'end', renderCell: (item) => <Text hasTabularNumbers>{item.loc.toLocaleString()}</Text>},
   ];
 
@@ -218,7 +222,7 @@ export default function DesignSystemPage() {
         <VStack gap={3}>
           <Heading level={2}>Status language</Heading>
           {Object.keys(STATUS_BADGE).map((status) => (
-            <HStack key={status} gap={2} vAlign="center">
+            <HStack key={status} gap={2} wrap="wrap" vAlign="center">
               <StatusBadge status={status} />
               <ConfidenceBadge confidence={status === 'Watch' ? 'uncertain' : 'definite'} />
               <Text type="supporting">Shape: {STATUS_BADGE[status].shape}.</Text>
@@ -253,7 +257,7 @@ export default function DesignSystemPage() {
             columns={columns}
             idKey="key"
             density={density}
-            plugins={{sort: sortPlugin, selection: selectionPlugin, pagination: paginationPlugin}}
+            plugins={{sort: sortPlugin, selection: selectionPlugin, pagination: paginationPlugin, stickyColumns: stickyPlugin}}
           />
           <Text type="supporting">
             Showing {visibleFlags.length} of {FLAGS.length} flags

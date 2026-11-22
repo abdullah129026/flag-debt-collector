@@ -19,6 +19,7 @@ import {
   useTableSortable,
   useTablePagination,
   useTableRowExpansion,
+  useTableStickyColumns,
   proportional,
 } from '@astryxdesign/core/Table';
 import { isKillSwitchKey } from '@/lib/scan/signals';
@@ -193,15 +194,24 @@ export function FlagTable({ flags, mode, onIgnore }) {
     getRowLabel: (item) => item.key,
     renderExpanded: (item) => <ExpandedFlag flag={item} />,
   });
+  // The flag column stays pinned while the table scrolls sideways. The
+  // floors below are the widths a badge or a key needs to read whole: the
+  // 60px omitted-width floor cut status badges to an icon at 375px.
+  const stickyPlugin = useTableStickyColumns({ startKeys: ['flag'] });
 
   const columns = [
     {
       key: 'flag',
       header: 'Flag',
-      width: proportional(2),
+      width: proportional(2, { minWidth: 200 }),
       sortable: { sortKey: 'key' },
       renderCell: (item) => (
-        <span style={item.status === 'removed' ? { textDecoration: 'line-through' } : undefined}>
+        <span
+          style={{
+            whiteSpace: 'nowrap',
+            ...(item.status === 'removed' ? { textDecoration: 'line-through' } : {}),
+          }}
+        >
           <Code>{item.key}</Code>
         </span>
       ),
@@ -209,6 +219,7 @@ export function FlagTable({ flags, mode, onIgnore }) {
     {
       key: 'status',
       header: 'Status',
+      width: proportional(1, { minWidth: 132 }),
       sortable: true,
       renderCell: (item) => (
         <VStack gap={1}>
@@ -220,6 +231,7 @@ export function FlagTable({ flags, mode, onIgnore }) {
     {
       key: 'confidence',
       header: 'Confidence',
+      width: proportional(1, { minWidth: 112 }),
       sortable: true,
       renderCell: (item) => <ConfidenceBadge confidence={item.confidence} />,
     },
@@ -243,6 +255,7 @@ export function FlagTable({ flags, mode, onIgnore }) {
     {
       key: 'reachable',
       header: 'Reachable',
+      width: proportional(1, { minWidth: 120 }),
       sortable: true,
       renderCell: (item) => <Text>{reachableText(item)}</Text>,
     },
@@ -259,6 +272,7 @@ export function FlagTable({ flags, mode, onIgnore }) {
     columns.push({
       key: 'actions',
       header: 'Actions',
+      width: proportional(1, { minWidth: 140 }),
       renderCell: (item) => (
         <HStack gap={2} vAlign="center">
           {item.status !== 'ignored' && (
@@ -371,8 +385,8 @@ export function FlagTable({ flags, mode, onIgnore }) {
             density={density}
             plugins={
               mode === 'report'
-                ? { sort: sortPlugin, pagination: paginationPlugin, expansion: expansionPlugin }
-                : { sort: sortPlugin, pagination: paginationPlugin }
+                ? { sort: sortPlugin, pagination: paginationPlugin, expansion: expansionPlugin, stickyColumns: stickyPlugin }
+                : { sort: sortPlugin, pagination: paginationPlugin, stickyColumns: stickyPlugin }
             }
           />
         </div>
