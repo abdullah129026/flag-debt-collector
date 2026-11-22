@@ -3,3 +3,13 @@
 
 /* Theme CSS comes in through the generated module (src/astryx-themes.js),
    imported by providers.js, so the layer order stays reset, base, theme. */
+
+/* The chrome links are plain text links with a 24px line box. Astryx
+   buttons grow an invisible 44px hit band under a coarse pointer, but
+   standalone links get none, so the chrome links grow their own padding
+   on touch screens instead. */
+@media (pointer: coarse) {
+  .chrome-links a {
+    padding-block: 10px;
+  }
+}

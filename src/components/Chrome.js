@@ -66,7 +66,7 @@ export function SignedInShell({ children, crumbs, active }) {
 export function MinimalTop({ rightLabel, rightHref }) {
   return (
     <Layout height="auto" contentWidth={960} padding={4}>
-      <HStack gap={2} vAlign="center" hAlign="space-between">
+      <HStack gap={2} vAlign="center" hAlign="space-between" className="chrome-links">
         <Link href="/" style={{ textDecoration: 'none' }}>
           <Text weight="semibold">Flag Debt Collector</Text>
         </Link>
@@ -81,7 +81,7 @@ export function MinimalTop({ rightLabel, rightHref }) {
 export function SiteFooter() {
   return (
     <Layout height="auto" contentWidth={960} padding={4}>
-      <HStack gap={4} wrap="wrap">
+      <HStack gap={4} wrap="wrap" className="chrome-links">
         <AstryxLink href="/docs" isStandalone>Docs</AstryxLink>
         <AstryxLink href="/privacy" isStandalone>Privacy</AstryxLink>
         <AstryxLink href="/terms" isStandalone>Terms</AstryxLink>
