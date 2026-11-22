@@ -49,6 +49,57 @@ has been viewed at 375, 768, and 1440 pixels.
 - Legal (terms, privacy): real copy, human-reviewed, no lorem ipsum.
 - 404 and 500: branded, with a way back to the dashboard or landing.
 
+## Phase-5 results (2026-11-22)
+
+Checked against the local production server (no Supabase yet). 52 tests
+green, `next build` clean. Screenshot sweep: 18 shots at 375/768/1440
+across landing, login, docs, terms, privacy, design-system gallery,
+unknown-scan error, and 404; every shot viewed. No horizontal overflow
+anywhere; zero console errors on every page; zero failed requests except
+two expected ones (the unknown-scan page gets 503 from the unconfigured
+API, the 404 page returns 404 for its own URL). Landing CLS is 0.
+Contrast measured in the browser: worst real text 6.4:1 on the landing,
+5.6:1 and up in the gallery (disabled text and the hidden loading label
+excluded, both by design). Focus ring visible on keyboard Tab. Button
+micro-interactions run on the theme tokens (fast 125ms, medium 300ms).
+
+Three real defects found and fixed in this run:
+
+- Flag table at 375px squeezed columns to unreadable widths: status
+  badges cut to an icon, the flag key broke mid-word, and the key column
+  was not pinned. Fixed in the shared FlagTable and the gallery table:
+  column floors (flag 200, status 132, confidence 112, reachable 120,
+  actions 140), the key never wraps, and the flag column pins with
+  useTableStickyColumns. Verified: table is 960px in a 375px scroll
+  region, the flag cell stays pinned after scrolling, the key is one
+  line, the Deletable badge fits whole.
+- No favicon: every page logged a failed /favicon.ico request. Added
+  src/app/icon.svg (flag mark on the near-black badge). The link tag now
+  serves it and the failed request is gone.
+- Chrome links (wordmark, Sign in, footer) had a 24px hit area on touch,
+  with no hit band: Astryx grows a 44px band for buttons and list rows
+  only. The chrome links now get 10px block padding under a coarse
+  pointer (measured 44px). Buttons already reach 44px through the
+  theme's hit band (verified: 6px insets top and bottom, a tap 6px above
+  the button still lands on it).
+
+Checked and not defects: the 2.5:1 "Scan id" label belongs to a disabled
+field (disabled text is 2.2:1 by design); the 1.1:1 loading-button label
+is visually hidden while the spinner shows; the landing screenshot at
+768 first looked clipped, but a viewport-only shot and measured rects
+(input right edge 744 of 753) prove it fits, the full-page capture
+rendered it wide.
+
+Still open until a live Supabase project exists (phase-6): every
+signed-in screen and state (dashboard empty/populated, flag detail
+actions, repos list, settings save, token test, typed-DELETE account
+flow, CSV export with real flags), the magic-link sent/error states,
+the real demo scan numbers on the landing, and the signed-in screenshot
+pass. Signed-in states were checked statically only: dashboard, flag
+detail, repos, and settings all have skeleton, error, and empty-state
+branches in code, and signed-out /dashboard, /repos, /settings, and
+/dashboard/flags/[id] all 307 to /login?next=... (verified live).
+
 ## Accessibility and responsive
 
 - Every interactive element is reachable by keyboard, with a visible
