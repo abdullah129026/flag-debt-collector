@@ -84,7 +84,7 @@ create index flags_scan_idx on public.flags (scan_id);
 create index flags_repo_idx on public.flags (repo_id);
 
 -- Call sites. File path and line only, never source text.
-create table public.references (
+create table public."references" (
   id uuid primary key default gen_random_uuid(),
   flag_id uuid not null references public.flags (id) on delete cascade,
   file_path text not null,
@@ -92,7 +92,7 @@ create table public.references (
   "column" int,
   kind text not null check (kind in ('call', 'definition', 'test', 'config'))
 );
-create index references_flag_idx on public.references (flag_id);
+create index references_flag_idx on public."references" (flag_id);
 
 -- References the resolver could not tie to a flag key. Location and
 -- reason only, never call-site text.
@@ -182,7 +182,7 @@ alter table public.repos enable row level security;
 alter table public.scans enable row level security;
 alter table public.repo_flags enable row level security;
 alter table public.flags enable row level security;
-alter table public.references enable row level security;
+alter table public."references" enable row level security;
 alter table public.unresolved_references enable row level security;
 alter table public.flag_events enable row level security;
 alter table public.provider_tokens enable row level security;
@@ -199,10 +199,10 @@ create policy flags_public_read on public.flags
   for select using (exists (select 1 from public.scans s where s.id = flags.scan_id and s.visibility = 'public'));
 create policy flags_owner_read on public.flags
   for select using (exists (select 1 from public.scans s where s.id = flags.scan_id and s.owner_id = auth.uid()));
-create policy references_public_read on public.references
-  for select using (exists (select 1 from public.flags f join public.scans s on s.id = f.scan_id where f.id = references.flag_id and s.visibility = 'public'));
-create policy references_owner_read on public.references
-  for select using (exists (select 1 from public.flags f join public.scans s on s.id = f.scan_id where f.id = references.flag_id and s.owner_id = auth.uid()));
+create policy references_public_read on public."references"
+  for select using (exists (select 1 from public.flags f join public.scans s on s.id = f.scan_id where f.id = "references".flag_id and s.visibility = 'public'));
+create policy references_owner_read on public."references"
+  for select using (exists (select 1 from public.flags f join public.scans s on s.id = f.scan_id where f.id = "references".flag_id and s.owner_id = auth.uid()));
 create policy unresolved_public_read on public.unresolved_references
   for select using (exists (select 1 from public.scans s where s.id = unresolved_references.scan_id and s.visibility = 'public'));
 create policy unresolved_owner_read on public.unresolved_references
@@ -224,7 +224,7 @@ grant select, insert, update, delete on public.repos to service_role;
 grant select, insert, update, delete on public.scans to service_role;
 grant select, insert, update, delete on public.repo_flags to service_role;
 grant select, insert, update, delete on public.flags to service_role;
-grant select, insert, update, delete on public.references to service_role;
+grant select, insert, update, delete on public."references" to service_role;
 grant select, insert, update, delete on public.unresolved_references to service_role;
 grant select, insert, update, delete on public.flag_events to service_role;
 grant select, insert, update, delete on public.provider_tokens to service_role;
@@ -233,7 +233,7 @@ grant select, insert, update, delete on public.meta to service_role;
 
 grant select on public.scans to anon, authenticated;
 grant select on public.flags to anon, authenticated;
-grant select on public.references to anon, authenticated;
+grant select on public."references" to anon, authenticated;
 grant select on public.unresolved_references to anon, authenticated;
 grant select, insert, update, delete on public.repos to authenticated;
 grant select, insert, update, delete on public.scans to authenticated;
