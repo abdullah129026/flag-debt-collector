@@ -89,7 +89,7 @@ create table public.references (
   flag_id uuid not null references public.flags (id) on delete cascade,
   file_path text not null,
   line int not null,
-  column int,
+  "column" int,
   kind text not null check (kind in ('call', 'definition', 'test', 'config'))
 );
 create index references_flag_idx on public.references (flag_id);
