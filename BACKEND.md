@@ -139,6 +139,9 @@ in the repo.
   created by any migration, so the first live ticks died uploading the
   tarball and the scan stuck in 'cloning' with a 500. Migration 0007
   creates it; the app only ever touches it with the service_role key.
+- `getScanWithRepo` did not select `visibility`, so the flags and CSV
+  routes read it as undefined and 404d every public scan (the scan page
+  itself selects it inline, which is why it worked while flags 404d).
 - Same-file unresolved rule: a dynamic or unresolved reference caps
   every flag recorded in that file at `possible`. Conservative, and
   documented on the flag row.
@@ -156,7 +159,7 @@ in the repo.
 ## Testing
 
 `npm test` runs the suite with `node --test "test/*.test.js"` (plain
-`node --test test/` does not pick the files up on this setup). 72 tests,
+`node --test test/` does not pick the files up on this setup). 73 tests,
 green. Coverage: URL validation, the detection engine against golden
 fixture `test/fixtures/fixture-a/` (SDK shapes, guards, ignore rules,
 config flags), LOC and the pure-JS diff (the generated diff is applied

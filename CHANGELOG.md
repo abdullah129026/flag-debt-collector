@@ -17,6 +17,9 @@ the fetch step only ran for 'queued' and every re-claim skipped it.
   earlier migration created: the first live ticks died uploading the
   tarball (500) and the scan stuck in 'cloning' until the bucket
   existed.
+- `getScanWithRepo` did not select `visibility`, so the flags and CSV
+  routes read it as undefined and 404d every public scan. The first
+  live demo scan proved it: `/api/scans/[id]` worked, `/api/scans/[id]/flags` 404d.
 
 ## 0.1.1 — 2026-11-24
 
