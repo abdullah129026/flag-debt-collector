@@ -13,7 +13,7 @@ were verified on 2026-11-20 against the local production server.
 - Signed-out `/dashboard` and `/repos` return 307 to `/login?next=...`.
 - `GET /api/scans/not-a-uuid` returns the one error shape, code `unconfigured`.
 - `next build` is clean (all 18 API routes, auth callback, landing, design-system).
-- 68 unit and integration tests green, including the full tick pipeline
+- 72 unit and integration tests green, including the full tick pipeline
   end to end against the golden fixture, tarball download and extraction
   against real GNU tar output, host-API age for GitHub and GitLab, and
   the pure-JS diff (verified by applying it back to the original).

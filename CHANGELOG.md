@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.2 — 2026-11-24
+
+The first live scan proved the tarball pipeline could strand a scan: a
+tick that died mid-download left the scan in 'cloning' forever, because
+the fetch step only ran for 'queued' and every re-claim skipped it.
+
+- The fetch step runs for 'queued' or 'cloning', so a dead download
+  retries on re-claim instead of sticking the scan.
+- Every fetch hop is time-boxed to the 10s function cap: repo metadata
+  3s, the tarball download 6s, host-API age calls 3s each with an early
+  stop at the tick deadline (partial ages, scan still finishes).
+- The seed caps every call at 15s and retries a failed status poll,
+  after the first seed run hung 300s on an unanswered call and crashed.
+
 ## 0.1.1 — 2026-11-24
 
 Post-launch fix: scans could not run on Vercel (no git binary in the

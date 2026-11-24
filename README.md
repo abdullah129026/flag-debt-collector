@@ -50,7 +50,7 @@ Never stored: source files, secret values found in scanned code, repo contents o
 ## Tests
 
 ```bash
-npm test    # 68 tests, node:test, zero test dependencies
+npm test    # 72 tests, node:test, zero test dependencies
 npm run build
 ```
 

@@ -59,7 +59,13 @@ name; when they are set, it verifies the session.
    archive API) and stores it as the artifact. Parse and finalize
    rebuild from that tarball, so there is no separate clone and no git
    in the runtime at all. Caps (100 MB, 10,000 files) are enforced on
-   the download and again during extraction.
+   the download and again during extraction. The fetch step runs for a
+   queued scan and for one stuck in 'cloning': a tick that dies
+   mid-download must retry on re-claim, not skip the step. Every hop
+   is time-boxed to fit the 10s function cap: repo metadata 3s, the
+   download 6s (a stalled download aborts with download_timeout and
+   retries, up to 3 attempts), the host-API age calls 3s each with an
+   early stop at the tick deadline.
 4. Parse is AST-first (`@babel/parser`): SDK calls are only counted when
    the matching SDK import is present in the file. `useFlags()` is read
    through property access and destructuring. Dynamic keys are recorded as
@@ -123,6 +129,12 @@ in the repo.
   landing fetches it on load. The seed script drives the tick until the
   scan is done or failed (it used to stop after the first tick, because
   intermediate statuses are not `queued`).
+- A tick that dies mid-download used to strand the scan in 'cloning'
+  forever: the fetch step only ran for 'queued', so every re-claim
+  skipped all steps and returned. The fetch now runs for 'queued' or
+  'cloning' (fixed 2026-11-24, the first live scan proved it). The
+  seed's own fetches are capped at 15s with the status poll retried,
+  after the first seed run hung 300s on an unanswered call and crashed.
 - Same-file unresolved rule: a dynamic or unresolved reference caps
   every flag recorded in that file at `possible`. Conservative, and
   documented on the flag row.
@@ -140,14 +152,16 @@ in the repo.
 ## Testing
 
 `npm test` runs the suite with `node --test "test/*.test.js"` (plain
-`node --test test/` does not pick the files up on this setup). 68 tests,
+`node --test test/` does not pick the files up on this setup). 72 tests,
 green. Coverage: URL validation, the detection engine against golden
 fixture `test/fixtures/fixture-a/` (SDK shapes, guards, ignore rules,
 config flags), LOC and the pure-JS diff (the generated diff is applied
 back to the original content in the test), signals and the full tick
-pipeline end to end against the fixture through an in-memory store,
+pipeline end to end against the fixture through an in-memory store
+(including a scan stuck in 'cloning' resuming and finishing),
 tarball download and extraction against real GNU tar output, host-API
-age for GitHub and GitLab, CSV output. The detection engine was
+age for GitHub and GitLab (including the deadline stop and the per-call
+timeout), CSV output. The detection engine was
 mutation-checked: removing `variation` from the client methods failed 3
 golden tests, and the restore was byte-identical.
 
