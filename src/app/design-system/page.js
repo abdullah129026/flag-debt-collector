@@ -358,10 +358,10 @@ export default function DesignSystemPage() {
 
         <VStack gap={3}>
           <Heading level={2}>Feedback</Heading>
-          <Banner status="info" title="Rescan in progress" description="Scan 2026-11-18-a1b2 is cloning acme/shop-web. The dashboard keeps the old data until it finishes." isDismissable />
+          <Banner status="info" title="Rescan in progress" description="Scan 2026-11-18-a1b2 is fetching acme/shop-web. The dashboard keeps the old data until it finishes." isDismissable />
           <Banner status="error" title="LaunchDarkly token invalid" description="Rollout reads unknown (token invalid). Paste a new token in Settings, then test the connection." />
           <Banner status="warning" title="Scan queue full" description="10 scans are queued. Try again in a few minutes, or wait for a slot to open." />
-          <ProgressBar label="Cloning acme/shop-web" value={62} hasValueLabel />
+          <ProgressBar label="Fetching acme/shop-web" value={62} hasValueLabel />
           <Spinner label="Parsing files" />
           <VStack gap={2}>
             <Skeleton width="100%" height={16} index={0} />

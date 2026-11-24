@@ -43,7 +43,7 @@ export async function GET(request) {
     }
     const paths = [];
     for (const scan of toDelete) {
-      paths.push(`scans/${scan.id}/history.bundle`, `scans/${scan.id}/parse-state.json`, `scans/${scan.id}/age-state.json`, `scans/${scan.id}/provider-state.json`);
+      paths.push(`scans/${scan.id}/repo.tar.gz`, `scans/${scan.id}/parse-state.json`, `scans/${scan.id}/age-state.json`, `scans/${scan.id}/provider-state.json`);
     }
     if (paths.length > 0) {
       await sb.storage.from('scan-artifacts').remove(paths).catch(() => {});

@@ -33,10 +33,11 @@ const stubFetch = (status, body) => async () => ({
   json: async () => body,
 });
 
-test('checkRepoSize reads the github size field', async () => {
-  const r = await checkRepoSize({ host: 'github.com', owner: 'acme', repo: 'shop' }, stubFetch(200, { size: 51200 }));
+test('checkRepoSize reads the github size field and default branch', async () => {
+  const r = await checkRepoSize({ host: 'github.com', owner: 'acme', repo: 'shop' }, stubFetch(200, { size: 51200, default_branch: 'main' }));
   assert.equal(r.ok, true);
   assert.equal(r.sizeMb, 50);
+  assert.equal(r.defaultBranch, 'main');
 });
 
 test('checkRepoSize fails fast over the cap and on 404', async () => {

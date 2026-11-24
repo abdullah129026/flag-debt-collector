@@ -25,7 +25,7 @@ export default function PrivacyPage() {
 
           <VStack gap={3}>
             <Heading level={2}>What is never stored</Heading>
-            <Text>Source files are never stored: the full clone is downloaded, scanned, then deleted. Secret values found in scanned code are never stored or logged; if a scan finds something that looks like a secret, rotate it.</Text>
+            <Text>Source files are never stored: the full repo tarball is downloaded, scanned, then deleted. Secret values found in scanned code are never stored or logged; if a scan finds something that looks like a secret, rotate it.</Text>
           </VStack>
 
           <VStack gap={3}>

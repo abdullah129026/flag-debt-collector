@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync, cpSync, readdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tick } from '../lib/scan/tick.js';
-import { cloneAndBundle } from '../lib/scan/clone.js';
+import { fetchAndExtract } from '../lib/scan/tarball.js';
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fixture-a');
 
@@ -63,25 +63,28 @@ function memoryStore() {
   };
 }
 
-function buildFixtureRepo() {
-  const dir = mkdtempSync(join(tmpdir(), 'fdc-tick-'));
-  const git = (args, env) => execFileSync('git', args, { cwd: dir, env: { ...process.env, ...env } });
-  git(['init', '-q']);
-  git(['config', 'user.email', 'test@example.com']);
-  git(['config', 'user.name', 'Test']);
-  cpSync(join(fixtureDir, 'src'), join(dir, 'src'), { recursive: true });
-  cpSync(join(fixtureDir, 'flags.json'), join(dir, 'flags.json'));
-  cpSync(join(fixtureDir, '.flagdebtignore'), join(dir, '.flagdebtignore'));
-  const old = { GIT_AUTHOR_DATE: '2025-01-10T10:00:00Z', GIT_COMMITTER_DATE: '2025-01-10T10:00:00Z' };
-  git(['add', '.']);
-  git(['commit', '-qm', 'fixture'], old);
-  return dir;
+// A fixture tarball built with the real tar CLI from a directory tree.
+// The fetch seam substitutes it for the network download; extraction,
+// caps, parsing, age, and finalize all run through the real code.
+function tarballOf(dir, topName) {
+  const parent = dirname(dir);
+  const out = join(mkdtempSync(join(tmpdir(), 'fdc-tb-')), 'fixture.tar.gz');
+  execFileSync('tar', ['-czf', out, '-C', parent, topName]);
+  return readFileSync(out);
 }
 
-const stubFetch = async () => ({ status: 200, ok: true, json: async () => ({ size: 100 }) });
+// The host API stub: repo metadata for the size check, one commit per
+// file for the age step (a single 2025-01-10 commit, so every flag is
+// old and untouched, as the old git-age fixture was).
+const stubFetch = async (url) => {
+  if (url.includes('/commits?path=')) {
+    return { status: 200, ok: true, json: async () => [{ commit: { committer: { date: '2025-01-10T10:00:00Z' } } }] };
+  }
+  return { status: 200, ok: true, json: async () => ({ size: 100, default_branch: 'main' }) };
+};
 
 test('one tick scans fixture-a end to end', async () => {
-  const repoDir = buildFixtureRepo();
+  const tarball = tarballOf(fixtureDir, 'fixture-a');
   const store = memoryStore();
   const repoId = 'repo-1';
   const scanId = 'scan-1';
@@ -90,50 +93,43 @@ test('one tick scans fixture-a end to end', async () => {
     id: scanId, repo_id: repoId, owner_id: null, status: 'queued',
     progress: {}, caps: { max_mb: 100, max_files: 10000 }, claim_hash: 'x',
   });
-  try {
-    const result = await tick(store, {
-      fetchImpl: stubFetch,
-      budgetMs: 60000,
-      cloneAndBundle: (_url, opts) => cloneAndBundle(repoDir, opts),
-    });
-    assert.equal(result.status, 'done');
-    const scan = store.scans.get(scanId);
-    assert.equal(scan.status, 'done');
-    // 9 flags: 7 from checkout.js (ignored_flag excluded) + 2 config flags.
-    assert.equal(store.flags.length, 9);
-    const byKey = new Map(store.flags.map((f) => [f.key, f]));
-    assert.equal(byKey.get('static_flag').status, 'stale');
-    // Possible, not likely: the dynamic key on line 16 is in the same file,
-    // and the same-file rule caps every flag it could touch.
-    assert.equal(byKey.get('static_flag').confidence, 'possible');
-    assert.equal(byKey.get('new_checkout_enabled').status, 'watch');
-    assert.equal(byKey.get('maintenance_mode').status, 'stale');
-    assert.equal(byKey.get('json_flag_a').status, 'stale');
-    assert.equal(byKey.get('json_flag_a').confidence, 'possible');
-    assert.equal(byKey.has('ignored_flag'), false);
-    // Rollout unknown everywhere: no provider token, so no diff and "up to N".
-    assert.equal(byKey.get('new_checkout_enabled').loc_up_to, true);
-    assert.equal(byKey.get('new_checkout_enabled').diff, null);
-    assert.ok(byKey.get('new_checkout_enabled').deletable_loc > 0);
-    // One unresolved dynamic reference.
-    assert.equal(store.unresolved.length, 1);
-    assert.equal(store.unresolved[0].reason, 'dynamic_key');
-    // Storage artifacts are deleted on finalize.
-    assert.equal(store.blobs.size, 0);
-  } finally {
-    rmSync(repoDir, { recursive: true, force: true });
-  }
+  const result = await tick(store, {
+    fetchImpl: stubFetch,
+    budgetMs: 60000,
+    fetchAndExtract: (args) => fetchAndExtract({ ...args, downloadImpl: async () => tarball }),
+  });
+  assert.equal(result.status, 'done');
+  const scan = store.scans.get(scanId);
+  assert.equal(scan.status, 'done');
+  // 9 flags: 7 from checkout.js (ignored_flag excluded) + 2 config flags.
+  assert.equal(store.flags.length, 9);
+  const byKey = new Map(store.flags.map((f) => [f.key, f]));
+  assert.equal(byKey.get('static_flag').status, 'stale');
+  // Possible, not likely: the dynamic key on line 16 is in the same file,
+  // and the same-file rule caps every flag it could touch.
+  assert.equal(byKey.get('static_flag').confidence, 'possible');
+  assert.equal(byKey.get('new_checkout_enabled').status, 'watch');
+  assert.equal(byKey.get('maintenance_mode').status, 'stale');
+  assert.equal(byKey.get('json_flag_a').status, 'stale');
+  assert.equal(byKey.get('json_flag_a').confidence, 'possible');
+  assert.equal(byKey.has('ignored_flag'), false);
+  // Rollout unknown everywhere: no provider token, so no diff and "up to N".
+  assert.equal(byKey.get('new_checkout_enabled').loc_up_to, true);
+  assert.equal(byKey.get('new_checkout_enabled').diff, null);
+  assert.ok(byKey.get('new_checkout_enabled').deletable_loc > 0);
+  // One unresolved dynamic reference.
+  assert.equal(store.unresolved.length, 1);
+  assert.equal(store.unresolved[0].reason, 'dynamic_key');
+  // Storage artifacts are deleted on finalize.
+  assert.equal(store.blobs.size, 0);
 });
 
 test('a scan with no JS/TS files fails with the fixed cause', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'fdc-empty-'));
-  const git = (args, env) => execFileSync('git', args, { cwd: dir, env: { ...process.env, ...env } });
-  git(['init', '-q']);
-  git(['config', 'user.email', 'test@example.com']);
-  git(['config', 'user.name', 'Test']);
+  const parent = mkdtempSync(join(tmpdir(), 'fdc-empty-'));
+  const dir = join(parent, 'empty');
+  mkdirSync(dir);
   writeFileSync(join(dir, 'README.md'), '# hello\n');
-  git(['add', '.']);
-  git(['commit', '-qm', 'readme'], { GIT_AUTHOR_DATE: '2025-01-10T10:00:00Z', GIT_COMMITTER_DATE: '2025-01-10T10:00:00Z' });
+  const tarball = tarballOf(dir, 'empty');
   const store = memoryStore();
   store.repos.set('repo-1', { id: 'repo-1', host: 'github.com', full_name: 'test/empty' });
   store.scans.set('scan-1', { id: 'scan-1', repo_id: 'repo-1', owner_id: null, status: 'queued', progress: {}, caps: { max_mb: 100, max_files: 10000 }, claim_hash: 'x' });
@@ -141,12 +137,12 @@ test('a scan with no JS/TS files fails with the fixed cause', async () => {
     const result = await tick(store, {
       fetchImpl: stubFetch,
       budgetMs: 60000,
-      cloneAndBundle: (_url, opts) => cloneAndBundle(dir, opts),
+      fetchAndExtract: (args) => fetchAndExtract({ ...args, downloadImpl: async () => tarball }),
     });
     assert.equal(result.status, 'failed');
     assert.equal(result.cause, 'no_js_ts_files');
     assert.equal(store.scans.get('scan-1').error, 'No JavaScript or TypeScript files found in this repo.');
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    rmSync(parent, { recursive: true, force: true });
   }
 });

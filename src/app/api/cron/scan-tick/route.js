@@ -6,7 +6,8 @@ import { timingSafeEqual } from 'node:crypto';
 
 // GET /api/cron/scan-tick — advances one queued (or stale-claimed) scan.
 // Bearer CRON_SECRET. Called every minute by pg_cron (or an external pinger).
-// Dynamic: must run on Node, not Edge, because the scan shells git.
+// Dynamic: must run on Node, not Edge, because the scan downloads and
+// extracts tarballs with node:zlib and node:fs.
 export const dynamic = 'force-dynamic';
 export const maxDuration = 10;
 

@@ -73,7 +73,7 @@ export function ScanForm({ buttonLabel }) {
           diff for your flags. Never stores source files, never writes to the repo.
         </Text>
         <Text type="supporting">
-          Repos up to 100 MB and 10,000 files. The full clone is downloaded, scanned, then deleted.
+          Repos up to 100 MB and 10,000 files. The full repo tarball is downloaded, scanned, then deleted.
         </Text>
         <Button label={buttonLabel || 'Scan this repo'} variant="primary" type="submit" isLoading={busy} isDisabled={busy} />
       </VStack>

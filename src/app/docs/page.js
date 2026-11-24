@@ -28,13 +28,13 @@ export default function DocsPage() {
           <VStack gap={3}>
             <Heading level={2}>What the scan reads.</Heading>
             <Text>Flag definitions and references via read-only access. Detection is AST-first: SDK calls count only when the matching SDK import is present in the file. LaunchDarkly, Unleash, Flagsmith, and ConfigCat call shapes are recognised, plus env-var flags and config-file flags.</Text>
-            <Text>Flag age comes from git history. Rollout comes from the provider API where a token is connected; env and config flags have no rollout.</Text>
+            <Text>Flag age comes from the repo host's commit history, labeled approx. Rollout comes from the provider API where a token is connected; env and config flags have no rollout.</Text>
           </VStack>
 
           <VStack gap={3}>
             <Heading level={2}>What the scan stores.</Heading>
             <Text>Flag name, age, rollout %, file paths, line numbers, LOC counts, and the deletion diff. Never source files, never secret values.</Text>
-            <Text>The full clone is downloaded, scanned, then deleted. Anonymous scans purge after 30 days.</Text>
+            <Text>The full repo tarball is downloaded, scanned, then deleted. Anonymous scans purge after 30 days.</Text>
           </VStack>
 
           <VStack gap={3}>

@@ -148,7 +148,7 @@ export function elapsedText(startIso, nowMs = Date.now()) {
 export const STEP_ORDER = ['queued', 'cloning', 'parsing', 'age', 'provider', 'done', 'failed'];
 export const STEP_LABELS = {
   queued: 'Queued',
-  cloning: 'Cloning',
+  cloning: 'Fetching',
   parsing: 'Parsing files',
   age: 'Reading flag age',
   provider: 'Fetching rollout',
