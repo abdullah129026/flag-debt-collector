@@ -2,6 +2,7 @@ import { json, notFound, unconfigured, internal } from '@/lib/http';
 import { service } from '@/lib/supabase';
 import { sessionUserId, readClaims } from '@/lib/auth';
 import { isUuid, sha256 } from '@/lib/validate';
+import { headlineCounts } from '@/lib/db-api';
 import { logError } from '@/lib/log';
 
 // GET /api/scans/[id] — scan status + progress + headline counts. Public
@@ -44,18 +45,7 @@ export async function GET(request, { params }) {
       .select('status, confidence, deletable_loc, loc_up_to')
       .eq('scan_id', id);
     const rows = flags || [];
-    counts = {
-      flags: rows.length,
-      deletable: rows.filter((f) => f.status === 'deletable').length,
-      // Headline total: definite and likely flags with a known winning value
-      // only; ignored and removed flags are excluded, "up to N" never adds in.
-      deletable_loc: rows
-        .filter((f) => !f.loc_up_to && (f.confidence === 'definite' || f.confidence === 'likely') && f.status !== 'ignored' && f.status !== 'removed')
-        .reduce((sum, f) => sum + (f.deletable_loc || 0), 0),
-      up_to_loc: rows
-        .filter((f) => f.loc_up_to)
-        .reduce((sum, f) => sum + (f.deletable_loc || 0), 0),
-    };
+    counts = headlineCounts(rows);
   }
 
   return json({

@@ -14,6 +14,7 @@ import { capture } from '@/src/lib/analytics';
 
 export default function Home() {
   const [toast, setToast] = useState(null);
+  const [demo, setDemo] = useState(null);
   useEffect(() => {
     capture('landing_pageview', { referrer: document.referrer || 'direct' });
     // A toast left by a page that navigated here (account deletion).
@@ -24,6 +25,13 @@ export default function Home() {
         setToast(saved);
       }
     } catch { /* no toast without storage */ }
+    // The demo scan, when one has finished. Until then the placeholder stays.
+    let alive = true;
+    fetch('/api/demo')
+      .then((r) => r.json())
+      .then((d) => { if (alive) setDemo(d); })
+      .catch(() => {});
+    return () => { alive = false; };
   }, []);
 
   return (
@@ -47,16 +55,29 @@ export default function Home() {
             <Heading level={2}>A real scan, before you paste anything.</Heading>
             <Card>
               <VStack gap={2} padding={4}>
-                <Text weight="semibold">The demo scan has not run yet.</Text>
-                <Text type="supporting">
-                  When it runs, this page shows its real flag count and deletable lines, with a link to
-                  the full report. No number is shown here until the scan produces one.
-                </Text>
-                <Text type="supporting">
-                  A report lists every flag with its age, rollout, call sites, deletable lines, and the
-                  deletion diff, so the value is visible before any input.
-                </Text>
-                <Link href="/docs" isStandalone>How the numbers are computed</Link>
+                {demo && demo.scan_id ? (
+                  <>
+                    <Text weight="semibold">The demo scan found {demo.flags} flags, {demo.deletable} of them deletable.</Text>
+                    <Text type="supporting">
+                      {demo.deletable_loc} lines can go for certain
+                      {demo.up_to_loc > 0 ? `, and up to ${demo.up_to_loc} more once the winning values are known.` : '.'}
+                    </Text>
+                    <Link href={`/scans/${demo.scan_id}`} isStandalone>See the full report</Link>
+                  </>
+                ) : (
+                  <>
+                    <Text weight="semibold">The demo scan has not run yet.</Text>
+                    <Text type="supporting">
+                      When it runs, this page shows its real flag count and deletable lines, with a link to
+                      the full report. No number is shown here until the scan produces one.
+                    </Text>
+                    <Text type="supporting">
+                      A report lists every flag with its age, rollout, call sites, deletable lines, and the
+                      deletion diff, so the value is visible before any input.
+                    </Text>
+                    <Link href="/docs" isStandalone>How the numbers are computed</Link>
+                  </>
+                )}
               </VStack>
             </Card>
           </VStack>
@@ -64,7 +85,7 @@ export default function Home() {
           <VStack gap={3}>
             <Heading level={2}>How it works</Heading>
             <Text>1. Paste a public repo URL.</Text>
-            <Text>2. The scan runs: clone, parse, age, provider.</Text>
+            <Text>2. The scan runs: download, parse, age, provider.</Text>
             <Text>3. The report shows every flag with age, rollout, call sites, deletable lines, and the diff.</Text>
           </VStack>
 
@@ -78,10 +99,19 @@ export default function Home() {
 
           <VStack gap={3}>
             <Heading level={2}>The number, honestly</Heading>
-            <Text>
-              The demo scan has not run yet, so there is no number to show. When it runs, this page
-              shows its real flag count and deletable lines, with a link to the full report.
-            </Text>
+            {demo && demo.scan_id ? (
+              <>
+                <Text>
+                  The demo scan found {demo.flags} flags in the demo repo, {demo.deletable} deletable, {demo.deletable_loc} lines gone for certain.
+                </Text>
+                <Link href={`/scans/${demo.scan_id}`} isStandalone>See the full report</Link>
+              </>
+            ) : (
+              <Text>
+                The demo scan has not run yet, so there is no number to show. When it runs, this page
+                shows its real flag count and deletable lines, with a link to the full report.
+              </Text>
+            )}
           </VStack>
 
           <VStack gap={3}>
