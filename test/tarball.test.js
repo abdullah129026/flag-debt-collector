@@ -244,3 +244,28 @@ test('fetchAndExtract and repoFromTarball round-trip a stored tarball', async ()
     rmSync(parent, { recursive: true, force: true });
   }
 });
+
+test('fetchAndExtract forwards a download timeout to the downloader', async () => {
+  const parent = mkdtempSync(join(tmpdir(), 'fdc-to-'));
+  const dir = join(parent, 't');
+  mkdirSync(dir);
+  writeFileSync(join(dir, 'a.js'), 'const a = 1;\n');
+  const buf = (() => {
+    const out = join(mkdtempSync(join(tmpdir(), 'fdc-tb2-')), 't.tar.gz');
+    execFileSync('tar', ['-czf', out, '-C', parent, 't']);
+    return readFileSync(out);
+  })();
+  try {
+    let seenTimeout = null;
+    const fetched = await fetchAndExtract({
+      host: 'github.com', owner: 'acme', repo: 't', ref: 'main',
+      timeoutMs: 1234,
+      downloadImpl: async (args) => { seenTimeout = args.timeoutMs; return buf; },
+    });
+    assert.equal(seenTimeout, 1234);
+    assert.equal(fetched.files, 1);
+    fetched.cleanup();
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});

@@ -58,3 +58,27 @@ test('approxAgeForGitLabFiles reads the GitLab commits API', async () => {
   const bad = await approxAgeForGitLabFiles('acme', 'shop', ['src/a.js'], async () => ({ ok: false, json: async () => ({}) }));
   assert.equal(bad['src/a.js'], null);
 });
+
+test('approxAgeForFiles stops at the deadline and leaves the rest unknown', async () => {
+  let calls = 0;
+  const fetch = async () => {
+    calls += 1;
+    return { ok: true, json: async () => ghCommits };
+  };
+  // Deadline already past: no file is attempted.
+  const out = await approxAgeForFiles('acme', 'shop', ['src/a.js', 'src/b.js'], fetch, null, { deadlineMs: Date.now() - 1 });
+  assert.equal(calls, 0);
+  assert.deepEqual(out, {});
+});
+
+test('approxAgeForFiles gives up on a hanging call instead of hanging', async () => {
+  // The stub waits for its abort signal; the 3s per-call timeout must
+  // fire and the file must come back null. This takes ~3s by design.
+  const hanging = async (_url, { signal } = {}) => {
+    await new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+    });
+  };
+  const out = await approxAgeForFiles('acme', 'shop', ['src/a.js'], hanging);
+  assert.equal(out['src/a.js'], null);
+});

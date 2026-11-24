@@ -13,7 +13,12 @@ if (!APP_URL || !CRON_SECRET) {
 }
 
 async function json(url, opts = {}) {
-  const res = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  // Every call is capped at 15s: a tick can die at the function cap and
+  // the platform does not always answer promptly, so an unbounded fetch
+  // hung the first seed run for 300s (the client's default headers
+  // timeout) and crashed it. A timed-out call throws and the loop below
+  // retries it.
+  const res = await fetch(url, { ...opts, signal: AbortSignal.timeout(15000), headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`${opts.method || 'GET'} ${url} -> ${res.status}: ${JSON.stringify(body)}`);
   return body;
@@ -39,7 +44,13 @@ while (!['done', 'failed'].includes(state.scan.status) && Date.now() < deadline)
   } catch (e) {
     console.log(`tick call failed (${e.message}), retrying`);
   }
-  state = await json(`${APP_URL}/api/scans/${scanId}`);
+  // The status poll can fail the same way; keep the last known state and
+  // retry next loop instead of crashing.
+  try {
+    state = await json(`${APP_URL}/api/scans/${scanId}`);
+  } catch (e) {
+    console.log(`status poll failed (${e.message}), retrying`);
+  }
   console.log(`status=${state.scan.status} progress=${state.scan.progress?.step ?? '-'}`);
   if (!['done', 'failed'].includes(state.scan.status)) await new Promise((r) => setTimeout(r, 5000));
 }

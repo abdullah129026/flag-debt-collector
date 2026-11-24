@@ -25,7 +25,9 @@ function memoryStore() {
     scans, repos, flags, refs, unresolved, events, repoFlags, blobs,
     async claimScan() {
       for (const scan of scans.values()) {
-        if (scan.status === 'queued') {
+        // Mirrors the real claim RPC minus the 1-minute silence window:
+        // a 'cloning' scan is re-claimable (a dead download must retry).
+        if (scan.status === 'queued' || scan.status === 'cloning') {
           return { scan_id: scan.id, scan_repo_id: scan.repo_id, scan_owner_id: scan.owner_id, scan_status: scan.status, scan_progress: scan.progress, scan_caps: scan.caps };
         }
       }
@@ -145,4 +147,32 @@ test('a scan with no JS/TS files fails with the fixed cause', async () => {
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }
+});
+
+test('a scan stuck in cloning re-runs the fetch and finishes', async () => {
+  // Regression: the fetch block used to run only for 'queued', so a tick
+  // that died mid-download left the scan in 'cloning' forever (every
+  // re-claim skipped all steps and returned). Seed the scan as the dead
+  // tick left it: status 'cloning', one attempt recorded.
+  const tarball = tarballOf(fixtureDir, 'fixture-a');
+  const store = memoryStore();
+  const repoId = 'repo-1';
+  const scanId = 'scan-1';
+  store.repos.set(repoId, { id: repoId, host: 'github.com', full_name: 'test/fixture-a' });
+  store.scans.set(scanId, {
+    id: scanId, repo_id: repoId, owner_id: null, status: 'cloning',
+    progress: { step: 'cloning', cloning_attempts: 1 }, caps: { max_mb: 100, max_files: 10000 }, claim_hash: 'x',
+  });
+  const result = await tick(store, {
+    fetchImpl: stubFetch,
+    budgetMs: 60000,
+    fetchAndExtract: (args) => fetchAndExtract({ ...args, downloadImpl: async () => tarball }),
+  });
+  assert.equal(result.status, 'done');
+  assert.equal(store.scans.get(scanId).status, 'done');
+  assert.equal(store.flags.length, 9);
+  // No cloning_attempts assertion here: finalize overwrites progress with
+  // the done summary, so the attempt count only exists mid-scan. The 9
+  // flags are the proof the fetch re-ran: without it there is no tarball,
+  // no parse, and no flags.
 });
