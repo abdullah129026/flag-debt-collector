@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.1 — 2026-11-24
+
+Post-launch fix: scans could not run on Vercel (no git binary in the
+serverless runtime, so `git clone` failed and every failure was
+misreported as "No repo at that URL").
+
+- Repos are fetched as tarballs (GitHub codeload, GitLab archive API)
+  and extracted with node:zlib plus a small tar reader; no binary is
+  assumed in the runtime. Caps (100 MB, 10,000 files) are enforced on
+  the download and during extraction.
+- Age comes from the host API for GitHub and GitLab (labeled approx,
+  rename detection off, flags cap at possible). Migration 0006 widens
+  the `age_source` check for `gitlab-api` and `unknown`.
+- Deletion diffs are generated in pure JS (Myers) and verified by
+  applying them back to the original content.
+- Fetch failures name their own cause: not_found, private_repo,
+  download_failed, download_timeout, over_caps.
+- The landing page's demo numbers now come from `GET /api/demo`, the
+  latest done scan of the demo repo. The seed script drives the tick
+  until the scan is done or failed.
+
 ## 0.1.0 — 2026-11-23
 
 First launchable version.

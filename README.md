@@ -26,11 +26,11 @@ Scans need a Supabase project. Create one on the free tier, run the migrations i
 
 ## How a scan works
 
-1. Clone the repo with `--filter=blob:none`, capped at 100 MB and 10,000 files.
+1. Download the repo as a tarball from the host (GitHub codeload or the GitLab archive API), capped at 100 MB and 10,000 files. No git binary is needed: the Vercel runtime does not have one.
 2. Parse the code (AST-first) and verify each flag against a real SDK import, so config maps and string matches do not count as flags.
-3. Age each flag from git history, check rollout against the provider (LaunchDarkly, ConfigCat) when a token is connected, and count call sites.
-4. Compute deletable lines from the real diff, and verify every generated diff with `git apply --check` before storing it.
-5. The clone is deleted when the scan finishes. Source files are never stored.
+3. Age each flag from the host's commit history (labeled approx), check rollout against the provider (LaunchDarkly, ConfigCat) when a token is connected, and count call sites.
+4. Compute deletable lines from a real unified diff, generated in pure JS and verified by applying it back to the original content before storing it.
+5. The download is deleted when the scan finishes. Source files are never stored.
 
 The tick loop advances one scan per minute, in 7-second chunks, so a scan of up to 1,000 files finishes in under 5 minutes and up to the 10,000-file cap in under 30 minutes.
 
@@ -50,7 +50,7 @@ Never stored: source files, secret values found in scanned code, repo contents o
 ## Tests
 
 ```bash
-npm test    # 52 tests, node:test, zero test dependencies
+npm test    # 68 tests, node:test, zero test dependencies
 npm run build
 ```
 

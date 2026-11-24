@@ -52,28 +52,34 @@ name; when they are set, it verifies the session.
 2. The tick (`GET /api/cron/scan-tick`, fired every minute by pg_cron)
    claims one scan with `claim_scan()` (`FOR UPDATE SKIP LOCKED`, 1-minute
    claim window, heartbeat refreshed during long steps), then runs
-   clone, parse, age, provider rollout, finalize in order, saving progress
+   fetch, parse, age, provider rollout, finalize in order, saving progress
    after each step. A tick does at most 7 seconds of work and re-queues
    the scan for the next tick when it runs out of time.
-3. Clone uses `--filter=blob:none` and stores one `git bundle` as the
-   artifact. Parse and age both rebuild from that bundle, so there is no
-   separate tarball.
+3. Fetch downloads the repo tarball (GitHub codeload, or the GitLab
+   archive API) and stores it as the artifact. Parse and finalize
+   rebuild from that tarball, so there is no separate clone and no git
+   in the runtime at all. Caps (100 MB, 10,000 files) are enforced on
+   the download and again during extraction.
 4. Parse is AST-first (`@babel/parser`): SDK calls are only counted when
    the matching SDK import is present in the file. `useFlags()` is read
    through property access and destructuring. Dynamic keys are recorded as
    unresolved, never guessed. `.flagdebtignore` excludes paths and keys.
-5. Age comes from `git log -S` / `-G` plus `git blame -w` per file, with a
-   GitHub API fallback (oldest commit per file, capped at 100 files,
-   labeled approximate) when git is absent or `SCANNER_AGE_SOURCE` is set.
+5. Age comes from the host API (oldest commit per file, capped at 100
+   files, labeled approximate) for GitHub and GitLab. Rename detection
+   is off and flags cap at possible confidence. The `SCANNER_AGE_SOURCE`
+   variable stays set to `github-api` as the recorded mode; the code no
+   longer branches on it.
 6. Rollout: LaunchDarkly flag-statuses API (a flag counts as 100% only
    when its status is `launched`, otherwise null), ConfigCat public
    `config.json` (fetched with the SDK key found in the repo, or a stored
    key for signed-in users). Env and config flags have no rollout.
 7. Finalize computes the three signals, status, confidence, deletable LOC
-   (from the real `git diff`, checked with `git apply --check` before
+   (from a real unified diff, generated in pure JS with Myers' algorithm
+   and verified by applying it back to the original content before
    storing), and the headline total: definite and likely flags with a
    known winning value only, ignored and removed excluded, "up to N"
-   never added.
+   never added. The landing page's demo numbers come from `GET /api/demo`,
+   the latest done scan of the demo repo.
 
 ## Data model
 
@@ -103,8 +109,20 @@ in the repo.
   the 5-minute whole-scan budget for multi-tick scans: a live tick
   refreshes its heartbeat during long steps, so 1 minute of silence
   means the tick is dead, never stolen. Migration 0004.
-- Bundle-only artifacts, no HEAD tarball. A `git bundle` of HEAD holds
-  history and blobs, so parse and age rebuild from the one bundle.
+- Tarball artifacts, no git at all. The Vercel Node runtime has no git
+  binary (proven 2026-11-24: the first live demo seed failed twice with
+  `git clone` ENOENT, misreported as "No repo at that URL"). The fetch
+  step downloads the host tarball and stores it; parse and finalize
+  rebuild by extracting it. Age comes from the host API, diffs are
+  generated in pure JS. The fetch failure taxonomy names its own cause
+  (not_found, private_repo, download_failed, download_timeout, over_caps)
+  instead of mapping everything to not_found. Migration 0006 widens the
+  `age_source` check for `gitlab-api` and `unknown`.
+- The landing page's demo numbers were static until the fix: `GET
+  /api/demo` now serves the latest done scan of the demo repo, and the
+  landing fetches it on load. The seed script drives the tick until the
+  scan is done or failed (it used to stop after the first tick, because
+  intermediate statuses are not `queued`).
 - Same-file unresolved rule: a dynamic or unresolved reference caps
   every flag recorded in that file at `possible`. Conservative, and
   documented on the flag row.
@@ -122,25 +140,25 @@ in the repo.
 ## Testing
 
 `npm test` runs the suite with `node --test "test/*.test.js"` (plain
-`node --test test/` does not pick the files up on this setup). 40 tests,
+`node --test test/` does not pick the files up on this setup). 68 tests,
 green. Coverage: URL validation, the detection engine against golden
 fixture `test/fixtures/fixture-a/` (SDK shapes, guards, ignore rules,
-config flags), LOC and age math against temp git repos, signals and the
-full tick pipeline end to end against the fixture through an in-memory
-store, CSV output. The detection engine was mutation-checked: removing
-`variation` from the client methods failed 3 golden tests, and the
-restore was byte-identical.
+config flags), LOC and the pure-JS diff (the generated diff is applied
+back to the original content in the test), signals and the full tick
+pipeline end to end against the fixture through an in-memory store,
+tarball download and extraction against real GNU tar output, host-API
+age for GitHub and GitLab, CSV output. The detection engine was
+mutation-checked: removing `variation` from the client methods failed 3
+golden tests, and the restore was byte-identical.
 
 ## Unverified at the end of phase-3
 
 - No Supabase project exists yet (phase-6 creates it). Migrations and
   routes are tested against pure functions, golden fixtures, and an
   in-memory store, not live Postgres.
-- Git in the Vercel Node runtime is unverified (the VM has git 2.43 and
-  `--filter=blob:none` clones work there). If a deploy proves git
-  absent, set `SCANNER_AGE_SOURCE=github-api`. That covers age only;
-  clone and parse still need git, and the GitHub API fallback for those
-  is post-launch work.
+- Git in the Vercel Node runtime is proven absent (2026-11-24, first live
+  demo seed). The scan pipeline no longer uses git anywhere: tarball
+  fetch, host-API age, pure-JS diffs.
 - The LaunchDarkly adapter is written against the documented API and
   never verified against a live account. No token in v1 by gate decision.
 - pg_cron firing end to end is unconfirmed (project 4's is too). The

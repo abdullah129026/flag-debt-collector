@@ -73,15 +73,14 @@ migration 0002 reads `provider_token_enc_key`.
    - `CRON_SECRET` = the value from step 2
 3. Optional values (set them now if you have them, or later):
    - `GITHUB_TOKEN` = a read-only personal access token. It raises the
-     GitHub API limit for the pre-clone size check and the no-git age
-     fallback from 60 to 5,000 requests/hour. Without it scans still
-     work for small repos.
+     GitHub API limit for the pre-download size check and the host-API age
+     from 60 to 5,000 requests/hour. Without it scans still work for small repos.
    - `NEXT_PUBLIC_POSTHOG_KEY` + `NEXT_PUBLIC_POSTHOG_HOST` =
      `https://us.i.posthog.com`, for analytics. Leave unset and the
      site sends no analytics.
-   - `SCANNER_AGE_SOURCE` = `git` (default). Only set `github-api` if
-     the first live scan proves git is missing from the Vercel runtime
-     (see step 10).
+   - `SCANNER_AGE_SOURCE` = `github-api`. The Vercel runtime has no git
+     binary (proven 2026-11-24), so age always comes from the host API;
+     the variable stays as the recorded mode.
 4. Deploy. Wait until the deployment carries the Production label.
 
 Two gotchas, both carried from project 4. First, use the legacy
@@ -191,11 +190,12 @@ sign in and rescan it from the dashboard. Both reports must list real
 flags with ages, rollout, call sites, deletable lines, and a diff.
 Download the CSV from a report and check it opens with the flag rows.
 Delete a scan, delete a repo, and confirm both disappear from the
-dashboard. If the first live scan fails on git, set
-`SCANNER_AGE_SOURCE=github-api` in Vercel env vars, redeploy, and
-re-run the scan: ages will read "approx", rename detection is off, and
-flags cap at possible confidence. Check Vercel → Logs after the sweep;
-a clean log after the signed-in check is real evidence.
+dashboard. The scan pipeline no longer uses git anywhere (the Vercel
+runtime has no git binary): repos are fetched as tarballs, age comes
+from the host API, diffs are generated in pure JS. If a scan fails,
+its error names the cause (not_found, download_failed, download_timeout)
+instead of the old blanket "No repo at that URL". Check Vercel → Logs
+after the sweep; a clean log after the signed-in check is real evidence.
 
 ## 12. Rollback plan
 
