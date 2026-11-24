@@ -135,6 +135,10 @@ in the repo.
   'cloning' (fixed 2026-11-24, the first live scan proved it). The
   seed's own fetches are capped at 15s with the status poll retried,
   after the first seed run hung 300s on an unanswered call and crashed.
+- The `scan-artifacts` storage bucket (private, 100 MB cap) was never
+  created by any migration, so the first live ticks died uploading the
+  tarball and the scan stuck in 'cloning' with a 500. Migration 0007
+  creates it; the app only ever touches it with the service_role key.
 - Same-file unresolved rule: a dynamic or unresolved reference caps
   every flag recorded in that file at `possible`. Conservative, and
   documented on the flag row.

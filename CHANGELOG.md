@@ -13,6 +13,10 @@ the fetch step only ran for 'queued' and every re-claim skipped it.
   stop at the tick deadline (partial ages, scan still finishes).
 - The seed caps every call at 15s and retries a failed status poll,
   after the first seed run hung 300s on an unanswered call and crashed.
+- Migration 0007 creates the `scan-artifacts` storage bucket, which no
+  earlier migration created: the first live ticks died uploading the
+  tarball (500) and the scan stuck in 'cloning' until the bucket
+  existed.
 
 ## 0.1.1 — 2026-11-24
 
