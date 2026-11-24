@@ -26,17 +26,29 @@ const created = await json(`${APP_URL}/api/scans`, {
 const scanId = created.scan_id;
 console.log(`scan ${scanId} created (claim token kept in the scan row)`);
 
-// Drive the tick until the scan leaves queued/processing, up to 10 minutes.
+// Drive the tick until the scan finishes, up to 10 minutes. The scan
+// moves through queued, cloning, parsing, age, provider, then done or
+// failed, so the loop runs until a terminal status, not just queued.
 const deadline = Date.now() + 10 * 60 * 1000;
 let state = { scan: { status: created.status, progress: null } };
-while (['queued', 'processing'].includes(state.scan.status) && Date.now() < deadline) {
-  await json(`${APP_URL}/api/cron/scan-tick`, { headers: { Authorization: `Bearer ${CRON_SECRET}` } });
+while (!['done', 'failed'].includes(state.scan.status) && Date.now() < deadline) {
+  // A tick can die at the function time cap; the scan resumes on the next
+  // tick, so a failed tick call is logged and retried, not fatal.
+  try {
+    await json(`${APP_URL}/api/cron/scan-tick`, { headers: { Authorization: `Bearer ${CRON_SECRET}` } });
+  } catch (e) {
+    console.log(`tick call failed (${e.message}), retrying`);
+  }
   state = await json(`${APP_URL}/api/scans/${scanId}`);
   console.log(`status=${state.scan.status} progress=${state.scan.progress?.step ?? '-'}`);
-  if (['queued', 'processing'].includes(state.scan.status)) await new Promise((r) => setTimeout(r, 5000));
+  if (!['done', 'failed'].includes(state.scan.status)) await new Promise((r) => setTimeout(r, 5000));
 }
-if (['queued', 'processing'].includes(state.scan.status)) {
+if (!['done', 'failed'].includes(state.scan.status)) {
   console.error('scan did not finish in 10 minutes; check /api/health and the server logs');
+  process.exit(1);
+}
+if (state.scan.status === 'failed') {
+  console.error(`scan failed: ${state.scan.error || 'unknown error'}`);
   process.exit(1);
 }
 const flags = await json(`${APP_URL}/api/scans/${scanId}/flags`);
